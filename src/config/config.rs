@@ -8,7 +8,7 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Result<Self, String> {
         Ok(Config {
-            database_url: require("DATABASE_URL")?,
+            database_url: require("DATABASE_URL").unwrap_or_else(|_| "".to_string()),
             port: require("PORT")
                 .unwrap_or_else(|_| "3030".to_string())
                 .parse()

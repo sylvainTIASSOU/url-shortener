@@ -17,7 +17,16 @@ async fn find_by_code(code: &str) -> Result<Link, AppError> {
     })
 }
 
+
 #[debug_handler]
+#[utoipa::path(
+    get,
+    path = "/health",
+    tag = "todo",
+    responses(
+            (status = 200, description = "Cheking server alive", body = ())
+    )
+)]
 pub async fn health() -> (StatusCode, &'static str) {
     (StatusCode::OK, "Server is alive.")
 }

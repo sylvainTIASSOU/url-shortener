@@ -5,16 +5,31 @@ use tokio::net::TcpListener;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::request_id::{MakeRequestUuid, SetRequestIdLayer};
 use tower_http::trace::TraceLayer;
+use utoipa::{OpenApi};
+use utoipa_swagger_ui::SwaggerUi;
+
 use crate::config::config::Config;
 use crate::controllers::link;
 use crate::middlewares::trace::{init_tracing, require_api_key};
 
 pub struct App;
 
+const TODO_TAG: &str = "todo";
 impl App {
     pub async fn run() {
+        #[derive(OpenApi)]
+        #[openapi(
+            // modifiers(&SecurityAddon),
+            tags(
+            (name = TODO_TAG, description = "Url shortener axum api project"),
+            )
+        )]
+        struct ApiDoc;
+
         dotenvy::dotenv().ok(); // load .env if present, ignore if missing
         init_tracing();
+
+
 
         let request_id_header = HeaderName::from_static("x-request-id");
         // SetRequestIdLayer generates a UUID and puts it in the request header.
@@ -35,14 +50,16 @@ impl App {
             eprintln!("Configuration error: {}", e);
             std::process::exit(1);
         });
+        //.post(link::create_link)
         println!("starting on port {}", config.port);
         let app = Router::new()
             .route("/health", get(link::health))
-            .route("/links", get(link::list_links).post(link::create_link))
+            .route("/links", get(link::list_links))
             .route("/links/{code}", get(link::get_link))
             .layer(TraceLayer::new_for_http())
             .layer(SetRequestIdLayer::new(request_id_header, MakeRequestUuid))
-            .layer(cors).merge(protected);
+            .layer(cors).merge(protected)
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));;
 
 
         let listener = TcpListener::bind(format!("0.0.0.0:{}", config.port))
